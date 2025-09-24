@@ -1,0 +1,138 @@
+#include <Arduino.h>
+#include <stdint.h>
+//    Paso 1 incluir librería
+#include <LiquidCrystal.h>
+//******************************************/
+// Definiciones
+//******************************************/
+//  Paso 2 definir pines de entrada físicos
+#define rs 15
+#define en 2
+/*#define d0 4
+#define d1 16
+#define d2 17
+#define d3 13*/
+#define d4 12
+#define d5 14
+#define d6 27
+#define d7 26
+
+#define Pot1 5
+#define Pot2 18
+#define ledA 21
+#define ledR 22
+#define ledG 23
+
+//PWMS
+#define pwmChannel 0
+#define pwmChannel1 1
+#define pwmChannel2 2
+
+#define freqPWM 100
+#define resPWN 8
+//******************************************/
+// Prototipos de funciones
+//******************************************/
+void initLCD(void);
+void initPWMs(void);
+void actualizarPantalla(void);
+
+//******************************************/
+// Variables globales
+//******************************************/
+uint8_t cont;
+uint8_t valor1;
+uint8_t valor2;
+
+//    Paso 3 Definir variables LCD
+//d0,d1,d2,d3,
+LiquidCrystal lcd(rs,en,d4,d5,d6,d7);
+
+//******************************************/
+// Configuracion
+//******************************************/
+void setup() {
+  Serial.begin(115200);
+  initLCD();
+  initPWMs();
+  lcd.begin(16,2);
+  actualizarPantalla();
+  cont = 0;
+  lcd.setCursor(0, 0);
+  lcd.print("Rojo Verde  Azul");
+}
+//******************************************/
+// Loop Principal
+//******************************************/
+void loop() {
+  lcd.setCursor(0, 0);
+  lcd.print("Rojo Verde  Azul");
+  uint32_t bits = analogRead(Pot1);
+  valor1 = map(bits, 0, 4095, 0, 255); 
+  uint32_t bits2 = analogRead(Pot2);
+  valor2 = map(bits2, 0, 4095, 0, 255); 
+  Serial.print("Intensidad Rojo: ");
+  Serial.print(valor1);
+  Serial.print("Intensidad Verde: ");
+  Serial.println(valor2);
+  ledcWrite(pwmChannel, valor1);
+  ledcWrite(pwmChannel2, valor2);
+ if (Serial.available() > 0) {
+    char entrada = Serial.read();
+    if (entrada == '+') {
+      if (cont < 255) {
+        cont++;
+      }
+    } 
+    else if (entrada == '-') {
+      if (cont > 0) {
+        cont--;
+      }
+    }
+    Serial.print("Intensidad Azul: ");
+    Serial.println(cont);
+  }
+  ledcWrite(pwmChannel1, cont);
+  actualizarPantalla();
+  delay(100);
+}
+//******************************************/
+// Otras funciones
+//******************************************/
+
+void initLCD (void){
+  //    Paso 4 Iniciar LCD
+  lcd.begin(16,2);
+  //  Limpia la pantalla antes de iniciar
+  //lcd.clear();
+  //  Define dónde empezar
+  lcd.setCursor(0,0);
+  lcd.clear();
+  delay(350);
+}
+void actualizarPantalla(void){
+  lcd.setCursor(0, 1);
+  lcd.print("   "); // Borra el número anterior
+  lcd.setCursor(0, 1);
+  lcd.print(valor1);
+
+  // Verde
+  lcd.setCursor(6, 1);
+  lcd.print("   "); // Borra el número anterior
+  lcd.setCursor(6, 1);
+  lcd.print(valor2);
+  
+  // Azul
+  lcd.setCursor(13, 1);
+  lcd.print("   "); // Borra el número anterior
+  lcd.setCursor(13, 1);
+  lcd.print(cont);
+}
+void initPWMs(void) {
+  ledcSetup(pwmChannel, freqPWM, resPWN);
+  ledcAttachPin(ledR, pwmChannel);
+  ledcSetup(pwmChannel1, freqPWM, resPWN);
+  ledcAttachPin(ledA, pwmChannel1);
+  ledcSetup(pwmChannel2, freqPWM, resPWN);
+  ledcAttachPin(ledG, pwmChannel2);
+}
